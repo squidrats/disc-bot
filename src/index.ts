@@ -1,44 +1,28 @@
-import { GatewayIntentBits, Collection, Client } from 'discord.js';
-import fs from 'node:fs';
-import path from 'node:path';
-import { env } from './env.js'
+import { Client } from 'discord.js';
+import { env } from './env.js';
+import { commands } from '~/commands/index.js';
+import { deployCommands } from '~/deploy-commands.js';
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+export const client = new Client({
+    intents: ['Guilds', 'GuildMessages', 'DirectMessages'],
+});
 
-client.commands = new Collection();
-const foldersPath = path.join(__dirname, 'commands');
-const commandFolders = fs.readdirSync(foldersPath);
+client.once('ready', () => {
+    console.log('Discord bot is ready! 🤖');
+});
 
-for (const folder of commandFolders) {
-    const commandsPath = path.join(foldersPath, folder);
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+client.on('guildCreate', async (guild) => {
+    await deployCommands({ guildId: guild.id });
+});
 
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        import(filePath).then(command => {
-            if ('data' in command && 'execute' in command) {
-                client.commands.set(command.data.name, command);
-            }
-            else {
-                console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
-            }
-        });
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isCommand()) {
+        return;
     }
-}
-
-const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
-
-for (const file of eventFiles) {
-    const filePath = path.join(eventsPath, file);
-    import(filePath).then(event => {
-        if (event.once) {
-            client.once(event.name, (...args) => event.execute(...args));
-        }
-        else {
-            client.on(event.name, (...args) => event.execute(...args));
-        }
-    });
-}
+    const { commandName } = interaction;
+    if (commands[commandName as keyof typeof commands]) {
+        commands[commandName as keyof typeof commands].execute(interaction);
+    }
+});
 
 client.login(env.DISCORD_TOKEN);
