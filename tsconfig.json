@@ -1,0 +1,23 @@
+{
+    "extends": [
+        "@tsconfig/recommended/tsconfig.json",
+        "@tsconfig/strictest/tsconfig.json",
+    ],
+    "compilerOptions": {
+        "target": "ES2021",
+        "module": "NodeNext",
+        "paths": {
+            "~/*": [
+                "./src/*"
+            ]
+        }
+    },
+    "include": [
+        "**/*.ts",
+        "**/*.tsx",
+        ".next/types/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+  }
